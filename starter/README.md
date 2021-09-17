@@ -100,11 +100,18 @@ Your task is to make sure all of the Application Requirements are properly imple
 ## Section 5: Check Unit Test Coverage
 Use IntelliJ to check code coverage. Our goal is to cover everything in the Security Service. Other teams will be maintaining our Image Service so we’ll focus strictly on the behavior of the Security Service. 
 
-![code coverage](code_coverage_1.png)
+![code coverage](starter/maven-udacity-catpoint/security/target/site/jacoco/index.html)
 
 **Your goal is to provide full coverage of all methods that implement the application requirements.** You don’t need to test trivial methods like getters or setters, but you do need to make sure that all the lines in your other methods are reachable by the unit tests.
 
-![code coverage](code_coverage_2.png)
+![code coverage](starter/maven-udacity-catpoint/security/target/site/jacoco/index.html)
+
+### Jacoco code coverage tool
+Have used Jacoco code coverage and below is the command executed to produce the report
+```
+mvn clean jacoco:prepare-agent install jacoco:report
+```
+![Jacoco reports](starter/maven-udacity-catpoint/security/target/site/jacoco/index.html)
 
 ### *Optional Stand Out Task:* Integration Tests
 
@@ -117,12 +124,14 @@ Update your `pom.xml` to use a maven plugin that allows you to compile your appl
 
 Submit a screenshot titled `executable_jar.png` that shows you running the executable jar from the command line and the application launching. Use the command `java -jar [yourjarname]` to run it.
 
-![creating a jar file](jar.png)
+![creating a jar file](executable_jar.png)
 
 ## Section 7: Add Static Analysis to Build
 Add a Reporting tag to your pom that contains the `spotbugs-maven-plugin` and use it to generate a `spotbugs.html` report in your project’s `/target/site` directory. 
 
 You should fix any of the errors it finds that are High priority. You are welcome, though not required, to address any other errors you find as well!
+
+![spotbugs report](starter/maven-udacity-catpoint/security/target/site/spotbugs.html)
 
 ### Project Submission
 
@@ -135,5 +144,4 @@ Make sure you have completed all the rubric items [here](https://review.udacity.
 ### Submit your Project
 
 You can submit your project by uploading a zip file or selecting your GitHub repo.
-
 
