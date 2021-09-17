@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Sensor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">security</a> &gt; <a href="index.source.html" class="el_package">com.udacity.catpoint.security.data</a> &gt; <span class="el_source">Sensor.java</span></div><h1>Sensor.java</h1><pre class="source lang-java linenums">package com.udacity.catpoint.security.data;
+
+
+import com.google.common.collect.ComparisonChain;
+
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Sensor POJO. Needs to know how to sort itself for display purposes.
+ */
+public class Sensor implements Comparable&lt;Sensor&gt; {
+    private UUID sensorId;
+    private String name;
+    private Boolean active;
+    private SensorType sensorType;
+
+<span class="fc" id="L18">    public Sensor(String name, SensorType sensorType) {</span>
+<span class="fc" id="L19">        this.name = name;</span>
+<span class="fc" id="L20">        this.sensorType = sensorType;</span>
+<span class="fc" id="L21">        this.sensorId = UUID.randomUUID();</span>
+<span class="fc" id="L22">        this.active = Boolean.FALSE;</span>
+<span class="fc" id="L23">    }</span>
+
+    @Override
+    public boolean equals(Object o) {
+<span class="pc bpc" id="L27" title="1 of 2 branches missed.">        if (this == o) return true;</span>
+<span class="pc bpc" id="L28" title="2 of 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="fc" id="L29">        Sensor sensor = (Sensor) o;</span>
+<span class="fc" id="L30">        return sensorId.equals(sensor.sensorId);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="fc" id="L35">        return Objects.hash(sensorId);</span>
+    }
+
+    public String getName() {
+<span class="nc" id="L39">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="nc" id="L43">        this.name = name;</span>
+<span class="nc" id="L44">    }</span>
+
+    public Boolean getActive() {
+<span class="fc" id="L47">        return active;</span>
+    }
+
+    public void setActive(Boolean active) {
+<span class="fc" id="L51">        this.active = active;</span>
+<span class="fc" id="L52">    }</span>
+
+    public SensorType getSensorType() {
+<span class="nc" id="L55">        return sensorType;</span>
+    }
+
+    public void setSensorType(SensorType sensorType) {
+<span class="nc" id="L59">        this.sensorType = sensorType;</span>
+<span class="nc" id="L60">    }</span>
+
+    public UUID getSensorId() {
+<span class="nc" id="L63">        return sensorId;</span>
+    }
+
+    public void setSensorId(UUID sensorId) {
+<span class="nc" id="L67">        this.sensorId = sensorId;</span>
+<span class="nc" id="L68">    }</span>
+
+    @Override
+    public int compareTo(Sensor o) {
+<span class="nc" id="L72">        return ComparisonChain.start()</span>
+<span class="nc" id="L73">                .compare(this.name, o.name)</span>
+<span class="nc" id="L74">                .compare(this.sensorType.toString(), o.sensorType.toString())</span>
+<span class="nc" id="L75">                .compare(this.sensorId, o.sensorId)</span>
+<span class="nc" id="L76">                .result();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

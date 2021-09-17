@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">security</a> &gt; <a href="index.source.html" class="el_package">com.udacity.catpoint.security.service</a> &gt; <span class="el_source">SecurityService.java</span></div><h1>SecurityService.java</h1><pre class="source lang-java linenums">package com.udacity.catpoint.security.service;
+
+import com.udacity.catpoint.image.service.ImageService;
+import com.udacity.catpoint.security.application.StatusListener;
+import com.udacity.catpoint.security.data.AlarmStatus;
+import com.udacity.catpoint.security.data.ArmingStatus;
+import com.udacity.catpoint.security.data.SecurityRepository;
+import com.udacity.catpoint.security.data.Sensor;
+
+import java.awt.image.BufferedImage;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * Service that receives information about changes to the security system. Responsible for
+ * forwarding updates to the repository and making any decisions about changing the system state.
+ *
+ * This is the class that should contain most of the business logic for our system, and it is the
+ * class you will be writing unit tests for.
+ */
+public class SecurityService {
+
+    private ImageService imageService;
+    private SecurityRepository securityRepository;
+<span class="fc" id="L25">    private Set&lt;StatusListener&gt; statusListeners = new HashSet&lt;&gt;();</span>
+
+<span class="fc" id="L27">    public SecurityService(SecurityRepository securityRepository, ImageService imageService) {</span>
+<span class="fc" id="L28">        this.securityRepository = securityRepository;</span>
+<span class="fc" id="L29">        this.imageService = imageService;</span>
+<span class="fc" id="L30">    }</span>
+
+    /**
+     * Sets the current arming status for the system. Changing the arming status
+     * may update both the alarm status.
+     * @param armingStatus
+     */
+    public void setArmingStatus(ArmingStatus armingStatus) {
+<span class="pc bpc" id="L38" title="1 of 3 branches missed.">        switch(armingStatus){</span>
+            case DISARMED:
+<span class="fc" id="L40">                setAlarmStatus(AlarmStatus.NO_ALARM);</span>
+<span class="fc" id="L41">                break;</span>
+            case ARMED_HOME:
+                //reset all sensors to inactive
+<span class="fc" id="L44">                getSensors().stream()</span>
+<span class="fc" id="L45">                            .forEach(s -&gt; s.setActive(false));</span>
+<span class="fc" id="L46">                break;</span>
+            default:
+                break;
+        }
+<span class="fc" id="L50">        securityRepository.setArmingStatus(armingStatus);</span>
+<span class="fc" id="L51">    }</span>
+
+    /**
+     * Internal method that handles alarm status changes based on whether
+     * the camera currently shows a cat.
+     * @param cat True if a cat is detected, otherwise false.
+     */
+    private void catDetected(Boolean cat) {
+<span class="pc bpc" id="L59" title="1 of 4 branches missed.">        if(cat &amp;&amp; getArmingStatus() == ArmingStatus.ARMED_HOME) {</span>
+<span class="fc" id="L60">            setAlarmStatus(AlarmStatus.ALARM);</span>
+<span class="pc bpc" id="L61" title="2 of 4 branches missed.">        } else if(!cat &amp;&amp; areSensorsDeactivated()) {</span>
+<span class="fc" id="L62">            setAlarmStatus(AlarmStatus.NO_ALARM);</span>
+        }
+
+<span class="fc" id="L65">        statusListeners.forEach(sl -&gt; sl.catDetected(cat));</span>
+<span class="fc" id="L66">    }</span>
+
+    /**
+     * Register the StatusListener for alarm system updates from within the SecurityService.
+     * @param statusListener
+     */
+    public void addStatusListener(StatusListener statusListener) {
+<span class="fc" id="L73">        statusListeners.add(statusListener);</span>
+<span class="fc" id="L74">    }</span>
+
+    public void removeStatusListener(StatusListener statusListener) {
+<span class="fc" id="L77">        statusListeners.remove(statusListener);</span>
+<span class="fc" id="L78">    }</span>
+
+    public Set&lt;StatusListener&gt; getStatusListeners(){
+<span class="fc" id="L81">        return statusListeners;</span>
+    }
+
+    /**
+     * Change the alarm status of the system and notify all listeners.
+     * @param status
+     */
+    public void setAlarmStatus(AlarmStatus status) {
+<span class="fc" id="L89">        securityRepository.setAlarmStatus(status);</span>
+<span class="fc" id="L90">        statusListeners.forEach(sl -&gt; sl.notify(status));</span>
+<span class="fc" id="L91">    }</span>
+
+    /**
+     * Internal method for updating the alarm status when a sensor has been activated.
+     */
+    private void handleSensorActivated() {
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        if(securityRepository.getAlarmStatus().equals(AlarmStatus.NO_ALARM)) {</span>
+<span class="fc" id="L98">            setAlarmStatus(AlarmStatus.PENDING_ALARM);</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">        } else if(securityRepository.getAlarmStatus().equals(AlarmStatus.PENDING_ALARM)){</span>
+<span class="fc" id="L100">            setAlarmStatus(AlarmStatus.ALARM);</span>
+        }
+<span class="fc" id="L102">    }</span>
+
+    /**
+     * Internal method for updating the alarm status when a sensor has been deactivated
+     */
+    private void handleSensorDeactivated() {
+<span class="fc bfc" id="L108" title="All 3 branches covered.">        switch(securityRepository.getAlarmStatus()) {</span>
+<span class="fc" id="L109">            case PENDING_ALARM -&gt; setAlarmStatus(AlarmStatus.NO_ALARM);</span>
+<span class="fc" id="L110">            case ALARM -&gt; setAlarmStatus(AlarmStatus.PENDING_ALARM);</span>
+<span class="fc" id="L111">            default -&gt; throw new IllegalArgumentException(&quot;Unexpected value: &quot; + securityRepository.getAlarmStatus());</span>
+        }
+<span class="fc" id="L113">    }</span>
+
+    /**
+     * Change the activation status for the specified sensor and update alarm status if necessary.
+     * @param sensor
+     * @param active
+     */
+    public void changeSensorActivationStatus(Sensor sensor, Boolean active) {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if(securityRepository.getArmingStatus() == ArmingStatus.DISARMED) {</span>
+<span class="fc" id="L122">            return; //no problem if the system is disarmed</span>
+        }
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        if(securityRepository.getAlarmStatus().equals(AlarmStatus.ALARM)){</span>
+<span class="fc" id="L125">            handleSensorDeactivated();</span>
+        } else {
+<span class="fc bfc" id="L127" title="All 2 branches covered.">            if(active){</span>
+<span class="fc" id="L128">                handleSensorActivated();</span>
+            } else {
+<span class="fc" id="L130">                handleSensorDeactivated();</span>
+            }
+        }
+<span class="fc" id="L133">        sensor.setActive(active);</span>
+<span class="fc" id="L134">        securityRepository.updateSensor(sensor);</span>
+<span class="fc" id="L135">    }</span>
+
+    /**
+     * Send an image to the SecurityService for processing. The securityService will use its provided
+     * ImageService to analyze the image for cats and update the alarm status accordingly.
+     * @param currentCameraImage
+     */
+    public void processImage(BufferedImage currentCameraImage) {
+<span class="fc" id="L143">        catDetected(imageService.imageContainsCat(currentCameraImage, 50.0f));</span>
+<span class="fc" id="L144">    }</span>
+
+    public AlarmStatus getAlarmStatus() {
+<span class="fc" id="L147">        return securityRepository.getAlarmStatus();</span>
+    }
+
+    public Set&lt;Sensor&gt; getSensors() {
+<span class="fc" id="L151">        return securityRepository.getSensors();</span>
+    }
+
+    public void addSensor(Sensor sensor) {
+<span class="fc" id="L155">        securityRepository.addSensor(sensor);</span>
+<span class="fc" id="L156">    }</span>
+
+    public void removeSensor(Sensor sensor) {
+<span class="fc" id="L159">        securityRepository.removeSensor(sensor);</span>
+<span class="fc" id="L160">    }</span>
+
+    private boolean areSensorsDeactivated(){
+<span class="fc" id="L163">        return getSensors().stream()</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">                        .allMatch(s -&gt; s.getActive() == false);</span>
+    }
+
+    public ArmingStatus getArmingStatus() {
+<span class="fc" id="L168">        return securityRepository.getArmingStatus();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

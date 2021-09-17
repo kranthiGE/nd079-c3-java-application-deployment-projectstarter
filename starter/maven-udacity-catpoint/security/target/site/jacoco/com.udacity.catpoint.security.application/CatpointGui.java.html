@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CatpointGui.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">security</a> &gt; <a href="index.source.html" class="el_package">com.udacity.catpoint.security.application</a> &gt; <span class="el_source">CatpointGui.java</span></div><h1>CatpointGui.java</h1><pre class="source lang-java linenums">package com.udacity.catpoint.security.application;
+
+import com.udacity.catpoint.security.data.PretendDatabaseSecurityRepositoryImpl;
+import com.udacity.catpoint.image.service.FakeImageService;
+import com.udacity.catpoint.security.service.SecurityService;
+import net.miginfocom.swing.MigLayout;
+
+import javax.swing.*;
+
+/**
+ * This is the primary JFrame for the application that contains all the top-level JPanels.
+ *
+ * We're not using any dependency injection framework, so this class also handles constructing
+ * all our dependencies and providing them to other classes as necessary.
+ */
+public class CatpointGui extends JFrame {
+<span class="nc" id="L17">    private PretendDatabaseSecurityRepositoryImpl securityRepository = new PretendDatabaseSecurityRepositoryImpl();</span>
+<span class="nc" id="L18">    private FakeImageService imageService = new FakeImageService();</span>
+<span class="nc" id="L19">    private SecurityService securityService = new SecurityService(securityRepository, imageService);</span>
+<span class="nc" id="L20">    private DisplayPanel displayPanel = new DisplayPanel(securityService);</span>
+<span class="nc" id="L21">    private ControlPanel controlPanel = new ControlPanel(securityService);</span>
+<span class="nc" id="L22">    private SensorPanel sensorPanel = new SensorPanel(securityService);</span>
+<span class="nc" id="L23">    private ImagePanel imagePanel = new ImagePanel(securityService);</span>
+
+<span class="nc" id="L25">    public CatpointGui() {</span>
+<span class="nc" id="L26">        setLocation(100, 100);</span>
+<span class="nc" id="L27">        setSize(600, 850);</span>
+<span class="nc" id="L28">        setTitle(&quot;Very Secure App&quot;);</span>
+<span class="nc" id="L29">        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);</span>
+
+<span class="nc" id="L31">        JPanel mainPanel = new JPanel();</span>
+<span class="nc" id="L32">        mainPanel.setLayout(new MigLayout());</span>
+<span class="nc" id="L33">        mainPanel.add(displayPanel, &quot;wrap&quot;);</span>
+<span class="nc" id="L34">        mainPanel.add(imagePanel, &quot;wrap&quot;);</span>
+<span class="nc" id="L35">        mainPanel.add(controlPanel, &quot;wrap&quot;);</span>
+<span class="nc" id="L36">        mainPanel.add(sensorPanel);</span>
+
+<span class="nc" id="L38">        getContentPane().add(mainPanel);</span>
+
+<span class="nc" id="L40">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
