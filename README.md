@@ -111,7 +111,8 @@ Have used Jacoco code coverage and below is the command executed to produce the 
 ```
 mvn clean jacoco:prepare-agent install jacoco:report
 ```
-![Jacoco reports](starter/maven-udacity-catpoint/security/target/site/jacoco/index.html)
+![Jacoco screenshot](starter/maven-udacity-catpoint/security/jacoco-code-coverage.png)
+![Jacoco detailed report](starter/maven-udacity-catpoint/security/target/site/jacoco/index.html)
 
 ### *Optional Stand Out Task:* Integration Tests
 
@@ -131,7 +132,8 @@ Add a Reporting tag to your pom that contains the `spotbugs-maven-plugin` and us
 
 You should fix any of the errors it finds that are High priority. You are welcome, though not required, to address any other errors you find as well!
 
-![spotbugs report](starter/maven-udacity-catpoint/security/target/site/spotbugs.html)
+![spotbugs screenshot](starter/maven-udacity-catpoint/security/spotbugs-security-svc.png)
+![spotbugs detailed report](starter/maven-udacity-catpoint/security/target/site/spotbugs.html)
 
 ### Project Submission
 
