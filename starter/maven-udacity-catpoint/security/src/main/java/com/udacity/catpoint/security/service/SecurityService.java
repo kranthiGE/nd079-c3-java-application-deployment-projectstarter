@@ -53,12 +53,18 @@ public class SecurityService {
                     setAlarmStatus(AlarmStatus.ALARM);
                 }
                 getSensors().stream()
-                            .forEach(s -> changeSensorActivationStatus(s, false));
+                            .forEach(s -> {
+                                s.setActive(false);
+                                changeSensorActivationStatus(s, false);
+                            });
                 break;
             default:
                 //reset all sensors to inactive
                 getSensors().stream()
-                            .forEach(s -> changeSensorActivationStatus(s, false));
+                            .forEach(s -> {
+                                s.setActive(false);
+                                changeSensorActivationStatus(s, false);
+                            });
                 break;
         }
         securityRepository.setArmingStatus(armingStatus);
@@ -161,13 +167,6 @@ public class SecurityService {
         } else {
             handleAlarmStatusBySensorState(active);
         }
-        // if(!securityRepository.getAlarmStatus().equals(AlarmStatus.ALARM)){
-        //     if(active){
-        //         handleSensorActivated();
-        //     } else {
-        //         handleSensorDeactivated();
-        //     }
-        // }
         sensor.setActive(active);
         securityRepository.updateSensor(sensor);
     }

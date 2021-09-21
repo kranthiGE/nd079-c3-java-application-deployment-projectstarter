@@ -11,5 +11,5 @@ security,com.udacity.catpoint.security.data,AlarmStatus,6,53,0,0,2,8,2,2,2,2
 security,com.udacity.catpoint.security.data,PretendDatabaseSecurityRepositoryImpl.new TypeToken() {...},6,0,0,0,1,0,1,0,1,0
 security,com.udacity.catpoint.security.data,SensorType,0,21,0,0,0,2,0,1,0,1
 security,com.udacity.catpoint.security.data,PretendDatabaseSecurityRepositoryImpl,126,0,2,0,31,0,11,0,10,0
-security,com.udacity.catpoint.security.service,SecurityService,1,268,4,27,0,71,4,37,0,25
+security,com.udacity.catpoint.security.service,SecurityService,1,276,4,27,0,77,4,37,0,25
 security,com.udacity.catpoint.security.service,StyleService,11,0,0,0,2,0,2,0,2,0
