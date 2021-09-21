@@ -69,11 +69,11 @@ public class Sensor implements Comparable&lt;Sensor&gt; {
 
     @Override
     public int compareTo(Sensor o) {
-<span class="nc" id="L72">        return ComparisonChain.start()</span>
-<span class="nc" id="L73">                .compare(this.name, o.name)</span>
-<span class="nc" id="L74">                .compare(this.sensorType.toString(), o.sensorType.toString())</span>
-<span class="nc" id="L75">                .compare(this.sensorId, o.sensorId)</span>
-<span class="nc" id="L76">                .result();</span>
+<span class="fc" id="L72">        return ComparisonChain.start()</span>
+<span class="fc" id="L73">                .compare(this.name, o.name)</span>
+<span class="fc" id="L74">                .compare(this.sensorType.toString(), o.sensorType.toString())</span>
+<span class="fc" id="L75">                .compare(this.sensorId, o.sensorId)</span>
+<span class="fc" id="L76">                .result();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -84,9 +84,4 @@ public class ImagePanel extends JPanel implements StatusListener {
             cameraHeader.setText("Camera Feed - No Cats Detected");
         }
     }
-
-    @Override
-    public void sensorStatusChanged() {
-        //no behavior necessary
-    }
 }

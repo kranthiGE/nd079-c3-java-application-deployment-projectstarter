@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">security</a> &gt; <a href="index.source.html" class="el_package">com.udacity.catpoint.security.service</a> &gt; <span class="el_source">SecurityService.java</span></div><h1>SecurityService.java</h1><pre class="source lang-java linenums">package com.udacity.catpoint.security.service;
 
 import com.udacity.catpoint.image.service.ImageService;
+import com.udacity.catpoint.security.application.SensorStatusListener;
 import com.udacity.catpoint.security.application.StatusListener;
 import com.udacity.catpoint.security.data.AlarmStatus;
 import com.udacity.catpoint.security.data.ArmingStatus;
@@ -10,6 +11,8 @@ import com.udacity.catpoint.security.data.Sensor;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Service that receives information about changes to the security system. Responsible for
@@ -22,12 +25,14 @@ public class SecurityService {
 
     private ImageService imageService;
     private SecurityRepository securityRepository;
-<span class="fc" id="L25">    private Set&lt;StatusListener&gt; statusListeners = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L28">    private Set&lt;StatusListener&gt; statusListeners = new HashSet&lt;&gt;();</span>
+    private SensorStatusListener sensorStatusListener;
+<span class="fc" id="L30">    private AtomicBoolean isCatDetected = new AtomicBoolean(false);</span>
 
-<span class="fc" id="L27">    public SecurityService(SecurityRepository securityRepository, ImageService imageService) {</span>
-<span class="fc" id="L28">        this.securityRepository = securityRepository;</span>
-<span class="fc" id="L29">        this.imageService = imageService;</span>
-<span class="fc" id="L30">    }</span>
+<span class="fc" id="L32">    public SecurityService(SecurityRepository securityRepository, ImageService imageService) {</span>
+<span class="fc" id="L33">        this.securityRepository = securityRepository;</span>
+<span class="fc" id="L34">        this.imageService = imageService;</span>
+<span class="fc" id="L35">    }</span>
 
     /**
      * Sets the current arming status for the system. Changing the arming status
@@ -35,20 +40,30 @@ public class SecurityService {
      * @param armingStatus
      */
     public void setArmingStatus(ArmingStatus armingStatus) {
-<span class="pc bpc" id="L38" title="1 of 3 branches missed.">        switch(armingStatus){</span>
+<span class="fc bfc" id="L43" title="All 3 branches covered.">        switch(armingStatus){</span>
             case DISARMED:
-<span class="fc" id="L40">                setAlarmStatus(AlarmStatus.NO_ALARM);</span>
-<span class="fc" id="L41">                break;</span>
-            case ARMED_HOME:
-                //reset all sensors to inactive
-<span class="fc" id="L44">                getSensors().stream()</span>
-<span class="fc" id="L45">                            .forEach(s -&gt; s.setActive(false));</span>
+<span class="fc" id="L45">                setAlarmStatus(AlarmStatus.NO_ALARM);// satisfies the requirement</span>
 <span class="fc" id="L46">                break;</span>
+            case ARMED_HOME:
+            /* this covers the scenario:
+            Put the system as disarmed, scan a picture until it detects a cat, 
+            after that make it armed, it should make system in ALARM state
+            */
+<span class="fc bfc" id="L52" title="All 2 branches covered.">                if(getCatStatus()){</span>
+<span class="fc" id="L53">                    setAlarmStatus(AlarmStatus.ALARM);</span>
+                }
+<span class="fc" id="L55">                getSensors().stream()</span>
+<span class="fc" id="L56">                            .forEach(s -&gt; changeSensorActivationStatus(s, false));</span>
+<span class="fc" id="L57">                break;</span>
             default:
+                //reset all sensors to inactive
+<span class="fc" id="L60">                getSensors().stream()</span>
+<span class="fc" id="L61">                            .forEach(s -&gt; changeSensorActivationStatus(s, false));</span>
                 break;
         }
-<span class="fc" id="L50">        securityRepository.setArmingStatus(armingStatus);</span>
-<span class="fc" id="L51">    }</span>
+<span class="fc" id="L64">        securityRepository.setArmingStatus(armingStatus);</span>
+<span class="fc" id="L65">        sensorStatusListener.sensorStatusChanged();</span>
+<span class="fc" id="L66">    }</span>
 
     /**
      * Internal method that handles alarm status changes based on whether
@@ -56,29 +71,39 @@ public class SecurityService {
      * @param cat True if a cat is detected, otherwise false.
      */
     private void catDetected(Boolean cat) {
-<span class="pc bpc" id="L59" title="1 of 4 branches missed.">        if(cat &amp;&amp; getArmingStatus() == ArmingStatus.ARMED_HOME) {</span>
-<span class="fc" id="L60">            setAlarmStatus(AlarmStatus.ALARM);</span>
-<span class="pc bpc" id="L61" title="2 of 4 branches missed.">        } else if(!cat &amp;&amp; areSensorsDeactivated()) {</span>
-<span class="fc" id="L62">            setAlarmStatus(AlarmStatus.NO_ALARM);</span>
+        //setting cat detected flag
+<span class="fc" id="L75">        isCatDetected.set(cat);</span>
+<span class="fc bfc" id="L76" title="All 4 branches covered.">        if(cat &amp;&amp; getArmingStatus() == ArmingStatus.ARMED_HOME) {</span>
+<span class="fc" id="L77">            setAlarmStatus(AlarmStatus.ALARM);</span>
+<span class="pc bpc" id="L78" title="1 of 4 branches missed.">        } else if(!cat &amp;&amp; areSensorsDeactivated()) {</span>
+<span class="fc" id="L79">            setAlarmStatus(AlarmStatus.NO_ALARM);</span>
         }
 
-<span class="fc" id="L65">        statusListeners.forEach(sl -&gt; sl.catDetected(cat));</span>
-<span class="fc" id="L66">    }</span>
+<span class="fc" id="L82">        statusListeners.forEach(sl -&gt; sl.catDetected(cat));</span>
+<span class="fc" id="L83">    }</span>
 
     /**
      * Register the StatusListener for alarm system updates from within the SecurityService.
      * @param statusListener
      */
     public void addStatusListener(StatusListener statusListener) {
-<span class="fc" id="L73">        statusListeners.add(statusListener);</span>
-<span class="fc" id="L74">    }</span>
+<span class="fc" id="L90">        statusListeners.add(statusListener);</span>
+<span class="fc" id="L91">    }</span>
+
+    /**
+     * Register the StatusListener for sensor system updates from within the SecurityService.
+     * @param statusListener
+     */
+    public void setSensorStatusListener(SensorStatusListener sensorStatusListener) {
+<span class="fc" id="L98">        this.sensorStatusListener = sensorStatusListener;</span>
+<span class="fc" id="L99">    }</span>
 
     public void removeStatusListener(StatusListener statusListener) {
-<span class="fc" id="L77">        statusListeners.remove(statusListener);</span>
-<span class="fc" id="L78">    }</span>
+<span class="fc" id="L102">        statusListeners.remove(statusListener);</span>
+<span class="fc" id="L103">    }</span>
 
     public Set&lt;StatusListener&gt; getStatusListeners(){
-<span class="fc" id="L81">        return statusListeners;</span>
+<span class="fc" id="L106">        return statusListeners;</span>
     }
 
     /**
@@ -86,31 +111,39 @@ public class SecurityService {
      * @param status
      */
     public void setAlarmStatus(AlarmStatus status) {
-<span class="fc" id="L89">        securityRepository.setAlarmStatus(status);</span>
-<span class="fc" id="L90">        statusListeners.forEach(sl -&gt; sl.notify(status));</span>
-<span class="fc" id="L91">    }</span>
+<span class="fc" id="L114">        securityRepository.setAlarmStatus(status);</span>
+<span class="fc" id="L115">        statusListeners.forEach(sl -&gt; sl.notify(status));</span>
+<span class="fc" id="L116">    }</span>
 
     /**
      * Internal method for updating the alarm status when a sensor has been activated.
      */
     private void handleSensorActivated() {
-<span class="fc bfc" id="L97" title="All 2 branches covered.">        if(securityRepository.getAlarmStatus().equals(AlarmStatus.NO_ALARM)) {</span>
-<span class="fc" id="L98">            setAlarmStatus(AlarmStatus.PENDING_ALARM);</span>
-<span class="pc bpc" id="L99" title="1 of 2 branches missed.">        } else if(securityRepository.getAlarmStatus().equals(AlarmStatus.PENDING_ALARM)){</span>
-<span class="fc" id="L100">            setAlarmStatus(AlarmStatus.ALARM);</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if(securityRepository.getAlarmStatus().equals(AlarmStatus.NO_ALARM)) {</span>
+<span class="fc" id="L123">            setAlarmStatus(AlarmStatus.PENDING_ALARM);</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        } else if(securityRepository.getAlarmStatus().equals(AlarmStatus.PENDING_ALARM)){</span>
+<span class="fc" id="L125">            setAlarmStatus(AlarmStatus.ALARM);</span>
         }
-<span class="fc" id="L102">    }</span>
+<span class="fc" id="L127">    }</span>
 
     /**
      * Internal method for updating the alarm status when a sensor has been deactivated
      */
     private void handleSensorDeactivated() {
-<span class="fc bfc" id="L108" title="All 3 branches covered.">        switch(securityRepository.getAlarmStatus()) {</span>
-<span class="fc" id="L109">            case PENDING_ALARM -&gt; setAlarmStatus(AlarmStatus.NO_ALARM);</span>
-<span class="fc" id="L110">            case ALARM -&gt; setAlarmStatus(AlarmStatus.PENDING_ALARM);</span>
-<span class="fc" id="L111">            default -&gt; throw new IllegalArgumentException(&quot;Unexpected value: &quot; + securityRepository.getAlarmStatus());</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if(securityRepository.getAlarmStatus().equals(AlarmStatus.PENDING_ALARM)){</span>
+<span class="fc" id="L134">            setAlarmStatus(AlarmStatus.NO_ALARM);</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        } else if(securityRepository.getAlarmStatus().equals(AlarmStatus.ALARM)){</span>
+<span class="fc" id="L136">            setAlarmStatus(AlarmStatus.PENDING_ALARM);</span>
         }
-<span class="fc" id="L113">    }</span>
+<span class="fc" id="L138">    }</span>
+
+    public void handleAlarmStatusBySensorState(Boolean sensorStatus){
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        if(sensorStatus){</span>
+<span class="fc" id="L142">            handleSensorActivated();</span>
+        } else {
+<span class="fc" id="L144">            handleSensorDeactivated();</span>
+        }
+<span class="fc" id="L146">    }</span>
 
     /**
      * Change the activation status for the specified sensor and update alarm status if necessary.
@@ -118,21 +151,26 @@ public class SecurityService {
      * @param active
      */
     public void changeSensorActivationStatus(Sensor sensor, Boolean active) {
-<span class="fc bfc" id="L121" title="All 2 branches covered.">        if(securityRepository.getArmingStatus() == ArmingStatus.DISARMED) {</span>
-<span class="fc" id="L122">            return; //no problem if the system is disarmed</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if(securityRepository.getArmingStatus() == ArmingStatus.DISARMED) {</span>
+<span class="fc" id="L155">            return; //no problem if the system is disarmed</span>
         }
-<span class="fc bfc" id="L124" title="All 2 branches covered.">        if(securityRepository.getAlarmStatus().equals(AlarmStatus.ALARM)){</span>
-<span class="fc" id="L125">            handleSensorDeactivated();</span>
-        } else {
-<span class="fc bfc" id="L127" title="All 2 branches covered.">            if(active){</span>
-<span class="fc" id="L128">                handleSensorActivated();</span>
-            } else {
-<span class="fc" id="L130">                handleSensorDeactivated();</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        if(securityRepository.getAlarmStatus().equals(AlarmStatus.ALARM)) {</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">            if(securityRepository.getArmingStatus() == ArmingStatus.ARMED_AWAY){</span>
+<span class="fc" id="L159">                handleSensorDeactivated();</span>
             }
+        } else {
+<span class="fc" id="L162">            handleAlarmStatusBySensorState(active);</span>
         }
-<span class="fc" id="L133">        sensor.setActive(active);</span>
-<span class="fc" id="L134">        securityRepository.updateSensor(sensor);</span>
-<span class="fc" id="L135">    }</span>
+        // if(!securityRepository.getAlarmStatus().equals(AlarmStatus.ALARM)){
+        //     if(active){
+        //         handleSensorActivated();
+        //     } else {
+        //         handleSensorDeactivated();
+        //     }
+        // }
+<span class="fc" id="L171">        sensor.setActive(active);</span>
+<span class="fc" id="L172">        securityRepository.updateSensor(sensor);</span>
+<span class="fc" id="L173">    }</span>
 
     /**
      * Send an image to the SecurityService for processing. The securityService will use its provided
@@ -140,32 +178,36 @@ public class SecurityService {
      * @param currentCameraImage
      */
     public void processImage(BufferedImage currentCameraImage) {
-<span class="fc" id="L143">        catDetected(imageService.imageContainsCat(currentCameraImage, 50.0f));</span>
-<span class="fc" id="L144">    }</span>
+<span class="fc" id="L181">        catDetected(imageService.imageContainsCat(currentCameraImage, 50.0f));</span>
+<span class="fc" id="L182">    }</span>
 
     public AlarmStatus getAlarmStatus() {
-<span class="fc" id="L147">        return securityRepository.getAlarmStatus();</span>
+<span class="fc" id="L185">        return securityRepository.getAlarmStatus();</span>
     }
 
     public Set&lt;Sensor&gt; getSensors() {
-<span class="fc" id="L151">        return securityRepository.getSensors();</span>
+<span class="fc" id="L189">        return (new ConcurrentSkipListSet&lt;Sensor&gt;(securityRepository.getSensors()));</span>
     }
 
     public void addSensor(Sensor sensor) {
-<span class="fc" id="L155">        securityRepository.addSensor(sensor);</span>
-<span class="fc" id="L156">    }</span>
+<span class="fc" id="L193">        securityRepository.addSensor(sensor);</span>
+<span class="fc" id="L194">    }</span>
 
     public void removeSensor(Sensor sensor) {
-<span class="fc" id="L159">        securityRepository.removeSensor(sensor);</span>
-<span class="fc" id="L160">    }</span>
+<span class="fc" id="L197">        securityRepository.removeSensor(sensor);</span>
+<span class="fc" id="L198">    }</span>
 
     private boolean areSensorsDeactivated(){
-<span class="fc" id="L163">        return getSensors().stream()</span>
-<span class="pc bpc" id="L164" title="1 of 2 branches missed.">                        .allMatch(s -&gt; s.getActive() == false);</span>
+<span class="fc" id="L201">        return getSensors().stream()</span>
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">                        .allMatch(s -&gt; s.getActive() == false);</span>
     }
 
     public ArmingStatus getArmingStatus() {
-<span class="fc" id="L168">        return securityRepository.getArmingStatus();</span>
+<span class="fc" id="L206">        return securityRepository.getArmingStatus();</span>
+    }
+
+    public boolean getCatStatus(){
+<span class="fc" id="L210">        return isCatDetected.get();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

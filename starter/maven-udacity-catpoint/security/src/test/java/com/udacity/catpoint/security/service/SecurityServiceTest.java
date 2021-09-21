@@ -1,5 +1,6 @@
 package com.udacity.catpoint.security.service;
 
+import com.udacity.catpoint.security.application.SensorStatusListener;
 import com.udacity.catpoint.security.application.StatusListener;
 import com.udacity.catpoint.security.data.AlarmStatus;
 import com.udacity.catpoint.security.data.ArmingStatus;
@@ -9,11 +10,11 @@ import com.udacity.catpoint.security.data.SensorType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +49,9 @@ public class SecurityServiceTest {
 
     @Mock
     private StatusListener statusListener;
+
+    @Mock
+    private SensorStatusListener sensorStatusListener;
 
     @BeforeEach
     void init(){
@@ -89,11 +93,16 @@ public class SecurityServiceTest {
     @ValueSource(booleans = {true, false})
     @DisplayName("4. If alarm is active, change in sensor state should not affect the alarm state.")
     public void whenSensorStateChanged_noChangeToAlarmState(boolean sensorStatus){
+        /*
+        scenario: Arm the system, activate two sensors and the system 
+        should go to alarm status. 
+        Then deactivate one sensor and the system should continue in alarm status.
+        */
         when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.ALARM);
         securityService.changeSensorActivationStatus(sensor, sensorStatus);
         // can't test by getAlarmStatus() as it will be null
         // so using never() to determine that setAlarmStatus is never called
-        verify(securityRepository, never()).setAlarmStatus(AlarmStatus.ALARM);
+        verify(securityRepository, never()).setAlarmStatus(any(AlarmStatus.class));
     }
 
     @Test
@@ -155,6 +164,7 @@ public class SecurityServiceTest {
     @Test
     @DisplayName("9. If the system is disarmed, set the status to no alarm.")
     public void whenSystemIsDisarmed_verifyStateAsNoAlarm(){
+        securityService.setSensorStatusListener(sensorStatusListener);
         securityService.setArmingStatus(ArmingStatus.DISARMED);
         verify(securityRepository).setAlarmStatus(AlarmStatus.NO_ALARM);
     }
@@ -162,10 +172,12 @@ public class SecurityServiceTest {
     @Test
     @DisplayName("10. If the system is armed, reset all sensors to inactive.")
     public void whenSystemIsArmed_verifySensorsToBeInActive(){
+        securityService.setSensorStatusListener(sensorStatusListener);
         // pass sensors in deactivated state
         when(securityService.getSensors()).thenReturn(
             getSensorTestDataSet(true)
         );
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
         securityService.setArmingStatus(ArmingStatus.ARMED_HOME);
         assertEquals(2, securityService.getSensors().size());
         securityService.getSensors()
@@ -173,7 +185,6 @@ public class SecurityServiceTest {
                         .forEach(
                             s -> assertFalse(s.getActive())
                         );
-
     }
 
     @Test
@@ -239,17 +250,28 @@ public class SecurityServiceTest {
     }
 
     @Test
-    @DisplayName("If a sensor is deactivated while already inactive, throw exception for NO_ALARM state.")
-    public void whenSensorIsDiactiveWhileInactive_throwExceptionForNoAlarmState(){
-        sensor.setActive(false);
-        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.NO_ALARM);
-        try{
-            securityService.changeSensorActivationStatus(sensor, false);
-        } catch(IllegalArgumentException ex){
-            assertTrue(ex.getMessage().contains("Unexpected value: NO_ALARM"));
-        }
-        verify(securityRepository, never()).updateSensor(sensor);
+    @DisplayName("when current image is Cat, changing to ARMED_HOME should set the status to ALARM")
+    public void whenCurrentImageIsCatAndStatusSetToArmed_changeStateToAlarm(){
+        securityService.setSensorStatusListener(sensorStatusListener);
+        // image service has cat image
+        when(imageService.imageContainsCat(any(), anyFloat())).thenReturn(true);
+        securityService.processImage(new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB));
+        securityService.setArmingStatus(ArmingStatus.ARMED_HOME);
+        verify(securityRepository).setAlarmStatus(AlarmStatus.ALARM);
     }
 
+    @Test
+    @DisplayName("when current image is Cat, changing to ARMED_HOME should set the status to ALARM")
+    public void whenAlarmIsInPendingAndArmedAway_updateArmedStatusToDatabase(){
+        // pass sensors in deactivated state
+        when(securityService.getSensors()).thenReturn(
+            getSensorTestDataSet(false)
+        );
+        securityService.setSensorStatusListener(sensorStatusListener);
+        when(securityRepository.getAlarmStatus()).thenReturn(AlarmStatus.ALARM);
+        when(securityRepository.getArmingStatus()).thenReturn(ArmingStatus.ARMED_AWAY);
+        securityService.setArmingStatus(ArmingStatus.ARMED_AWAY);
+        verify(securityRepository, times(2)).setAlarmStatus(AlarmStatus.PENDING_ALARM);
+    }
     
 }
